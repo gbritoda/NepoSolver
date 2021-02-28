@@ -15,8 +15,6 @@ Ybus = np.array([
 ])
 Ybus = 1j*Ybus
 
-np.set_printoptions(precision=4)
-
 zbus = np.array([
     [0.2, 0.2, 0.2, 0.2],
     [0.2, 0.6, 0.2, 0.6],
@@ -25,12 +23,19 @@ zbus = np.array([
 ])
 zbus = 1j*zbus
 
-zbus2 = 1j*np.array([
+#ex 9
+print("EXERCICIO 9")
+zbus9 = 1j*np.array([
     [0.717, 0.61, 0.533, 0.58],
     [0.61, 0.732, 0.64, 0.697],
     [0.533, 0.64, 0.717, 0.67],
     [0.58, 0.697, 0.67, 0.763]
 ])
+nepo.Zbus_case2(zbus9, 0.5j, k=3)
+
+#ex 10
+print("EXERCICIO 10")
+nepo.Zbus_case4(zbus9, 0.2j, j=1, k=4)
 
 #ex 14
 zbus3 = 1j*np.array([
@@ -57,3 +62,17 @@ zbus17 = 1j*np.array([
     [0.155, 0.15, 0.2, 0.105],
     [0.146, 0.15, 0.105, 0.196]
 ])
+print("Exercicio 17")
+nepo.triphase_fault_zbus(zbus17, k_fault=1, Vf=1)
+#ex 18
+print("Exercicio 18")
+nepo.fault_phase_gnd(0.15j, 0.15j, 0.05j, Zf=0, Vf=1)
+#ex 19
+print("Exercicio 19")
+nepo.fault_phase_phase(0.15j, 0.15j, 0.05j, Zf=0, Vf=1)
+# ex 21
+print('Exercicio 21')
+nepo.fault_phase_gnd(0.2j,0.2j,0.05j, Zf=0.08j,Vf=1)
+#ex 22
+print('Exercicio 22')
+nepo.fault_phase_phase_gnd(0.2j, 0.2j, 0.05j, 0.05j, 8./9, steps = True)
