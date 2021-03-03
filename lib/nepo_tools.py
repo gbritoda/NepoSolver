@@ -123,7 +123,7 @@ def inv(Y):
 
 ######### Zbus MODIFICATIONS #########
 
-def Zbus_case1(Zbus, Zb, steps=True):
+def Zbus_case1(Zbus, Zb, steps=False):
     '''
     Adding an impedance Zb between a new bus p to the reference bus.
     Adicionando uma impedancia Zb de uma nova barra p para a referencia
@@ -142,7 +142,7 @@ def Zbus_case1(Zbus, Zb, steps=True):
         print(msg % locals())
     return Zbus
 
-def Zbus_case2(Zbus, Zb, k, steps=True, case3=False):
+def Zbus_case2(Zbus, Zb, k, steps=False, case3=False):
     '''
     Adding a Zb of a new bus p to a bus k that already exists
     Adicionando Zb de uma nova barra p para uma barra k ja existente
@@ -171,7 +171,7 @@ def Zbus_case2(Zbus, Zb, k, steps=True, case3=False):
         print(msg % locals())
     return Zbus
 
-def Zbus_case3(Zbus, Zb, k, steps=True):
+def Zbus_case3(Zbus, Zb, k, steps=False):
     '''
     Adding Zb of an existing bus k to reference bus
     Adicionando Zb de uma existente k para a barra de referencia
@@ -185,7 +185,7 @@ def Zbus_case3(Zbus, Zb, k, steps=True):
         print(msg % locals())
     return Zbus
 
-def Zbus_case4(Zbus, Zb, j, k, steps=True):
+def Zbus_case4(Zbus, Zb, j, k, steps=False):
     '''
     Adding Zb between two already existing buses j and k
     Adicionando Zb entre duas barras j e k existentes
@@ -225,7 +225,7 @@ def Zbus_case4(Zbus, Zb, j, k, steps=True):
     return Zbus
 
 ###### FALTAS SIMETRICAS ######
-def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
+def triphase_fault_zbus(Zbus, k_fault, Vf, steps=False):
     '''
     3-phase fault (Symmetrical)
     :input:
@@ -270,7 +270,7 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
     return V, I
 
 ###### FALTAS ASSIMETRICAS ######
-def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=True):
+def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=False):
     """
     Calculating fault voltages.
     :input:
@@ -302,7 +302,7 @@ def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=True):
         msg = ''
     return (Vabc, Vkan, msg)
 
-def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
+def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=False):
     '''
     Phase-gnd fault.
     :input:
@@ -328,7 +328,7 @@ def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     vIf = np.matmul(A, vIfn)
 
     Vabc, Vkan, msgV = \
-        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=True)
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=steps)
     ret = vIf, vIfn, Vabc, Vkan
     if steps:
         Zff = 3*Zf
@@ -347,7 +347,7 @@ def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
 
     return ret
 
-def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
+def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=False):
     '''
     Phase-Phase fault
     :input:
@@ -376,7 +376,7 @@ def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
     vIf = np.array(A @ vIfn).reshape(-1,1)
     
     Vabc, Vkan, msgV = \
-        fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf, steps=True)
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf, steps=steps)
     ret = vIf, vIfn, Vabc, Vkan
 
     if steps:
@@ -401,7 +401,7 @@ def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
 
     return ret
 
-def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
+def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=False):
     '''
     Phase to phase ground.
     :input:
@@ -428,7 +428,7 @@ def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     vIf = np.array(A @ vIfn).reshape(-1,1)
 
     Vabc, Vkan, msgV = \
-        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=True)
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=steps)
     ret = vIf, vIfn, Vabc, Vkan
 
     if steps:
