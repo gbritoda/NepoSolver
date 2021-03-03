@@ -1,11 +1,27 @@
 import numpy as np
 import cmath
 
-def dPhasor(r, phi, polar=True):
+def dPhasor(r, phi):
+    """
+    Declares a phasor in polar form using Magnitude (r) and Angle (phi).
+    :input:
+        r - Magnitude
+        phi -Angle in degrees
+    :returns:
+        Phasor
+    """
     z = cmath.rect(r,phi*cmath.pi/180)
     return Phasor(z.real,z.imag)
 
 class Phasor(complex):
+    """
+    Declares a phasor in polar form using real and imaginary parts.
+    :input:
+        real
+        imag
+    :returns:
+        Phasor
+    """
     def __init__(self, real, imag):
         self.r, self.th_r = cmath.polar(self.real+1j*self.imag)
         self.phi = self.th_r*180/cmath.pi #Degrees
@@ -24,16 +40,18 @@ class Phasor(complex):
     def to_polar(z):
         z = cmath.polar(z.real+1j*z.imag)
         return (z[0], z[1]*180/cmath.pi)
+
     @staticmethod
     def rect2polarstr(z):
         z = Phasor.to_polar(z)
         r = round(z[0],4)
         phi = round(z[1],2)
         return "{}/_{}{}".format(r, phi,u'\xb0')
+
     @staticmethod
     def polar_matrix_str(M):
         '''
-        Takes a complex matrix and converts it to polar form (only string)
+        Takes a complex matrix and converts it to polar form (only string), for printouts
         '''
         M = np.array(M, dtype='complex_')
         Mnew = ''
@@ -43,6 +61,7 @@ class Phasor(complex):
             for j in range(M.shape[1]):
                 Mnew += Phasor.rect2polarstr(M[i][j]) + '  '
         return Mnew
+
     @staticmethod
     def rect_matrix_str(M):
         '''
@@ -58,6 +77,8 @@ class Phasor(complex):
         return Mnew
 
 ######### Matriz A #########
+# A matrixes, used to convert between Sequence voltages/currents
+
 global a,A,Ainv
 
 a = dPhasor(1,120)
@@ -100,23 +121,11 @@ def inv(Y):
     '''
     return np.linalg.inv(Y)
 
-def get_impedance_matrix_from_Ybus(Ybus):
-    Ybus = np.array(Ybus)
-    Zmat = np.zeros(Ybus.shape)
-    for i in range(Ybus.shape[0]):
-        for j in range(Ybus.shape[1]):
-            Zmat[i][j] = 1./Ybus[i][j]
-    return Zmat
-
-def get_impedance_matrix_from_Zbus(Zbus):
-    Ybus = inv(Zbus)
-    return get_impedance_matrix_from_Ybus(Ybus)
-    
-
 ######### Zbus MODIFICATIONS #########
 
 def Zbus_case1(Zbus, Zb, steps=True):
     '''
+    Adding an impedance Zb between a new bus p to the reference bus.
     Adicionando uma impedancia Zb de uma nova barra p para a referencia
     '''
     zb_orig = Zbus
@@ -135,6 +144,7 @@ def Zbus_case1(Zbus, Zb, steps=True):
 
 def Zbus_case2(Zbus, Zb, k, steps=True, case3=False):
     '''
+    Adding a Zb of a new bus p to a bus k that already exists
     Adicionando Zb de uma nova barra p para uma barra k ja existente
     '''
     kb = k
@@ -163,6 +173,7 @@ def Zbus_case2(Zbus, Zb, k, steps=True, case3=False):
 
 def Zbus_case3(Zbus, Zb, k, steps=True):
     '''
+    Adding Zb of an existing bus k to reference bus
     Adicionando Zb de uma existente k para a barra de referencia
     '''
     Zbus = Zbus_case2(Zbus, Zb, k, steps, case3=True)
@@ -176,6 +187,7 @@ def Zbus_case3(Zbus, Zb, k, steps=True):
 
 def Zbus_case4(Zbus, Zb, j, k, steps=True):
     '''
+    Adding Zb between two already existing buses j and k
     Adicionando Zb entre duas barras j e k existentes
     '''
     # Convert mathematical index to programming index
@@ -234,10 +246,10 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
         V[j] = Vf - Zbus[j][k]*If
 
     # Impedance Matrix - Not to be confused with Zbus!
-    Zmat = get_impedance_matrix_from_Ybus(Zbus)
+    Ybus = inv(Zbus)
     for j in range(len(V)):
         for i in range(len(V)):
-            I[i][j] = (V[i] - V[j])/Zmat[i][j]
+            I[i][j] = (V[i] - V[j])*(-1*Ybus[i][j])
 
     if steps:
         k = k_fault
@@ -248,17 +260,28 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
             " = " + str(Phasor.rect2polarstr(If)) + "\n\n"
         msg += "Calculando as tensoes\n"
         msg += "V[j] = Vf - Zbus[j][%(k)s]*If \n\n"
-        msg += "Calculando as correntes:\n"
+        msg += "Calculando as correntes entre as barras\n(ex.: entre barra 1 e 2 é I[1][2]):\n"
         msg += "I[i][j] = (V[i] - V[j])/Zb[i][j]\n\n"
         msg += "Tensoes finais:\n"
         msg += str(V.reshape(-1,1)) + "\n\n"
-        msg += "Correntes finais: \n%(I)s\n"
+        msg += "Correntes entre barras: \n%(I)s\n"
         
         print(msg % locals())
     return V, I
 
 ###### FALTAS ASSIMETRICAS ######
 def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=True):
+    """
+    Calculating fault voltages.
+    :input:
+        Zkk1,Zkk2,Zkk0: Impedances of sequences 1,2 and 0
+        Zf: Impedance between lines
+        Vf: Pre-fault voltage
+    :returns:
+        Vabc: Vector of voltages (Phase voltages)
+        Vkan: Vector of sequence voltages (Phase voltages)
+        msg: Steps
+    """
     Ifa0 = vIfn[0]
     Ifa1 = vIfn[1]
     Ifa2 = vIfn[2]
@@ -268,23 +291,30 @@ def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=True):
     Vka2 = -Zkk2*Ifa2
 
     Vkan = np.array([Vka0, Vka1, Vka2]).reshape(-1,1)
-    Vabc = (A @ Vkan) # Correcao de base
-    # print("Vkan\n",Vkan)
-    # print("A * Vkan\n",A @ Vkan)
-    # print("Vabc\n",Vabc)
-    # input()
+    Vabc = (A @ Vkan)
+
     if steps:
         msg = "\n\nCalculando tensoes pos falta:\n"
         msg += "Vka0 = -Zkk0*Ifa0\nVka1 = Vf - Zkk1*Ifa1\nVka2 = -Zkk2*Ifa2\n\n"
         msg += "Vkan = " + Phasor.polar_matrix_str(Vkan) + '\n\n'
-        msg += "Vabc = (A @ Vkan) / sqrt(3) = " + Phasor.polar_matrix_str(Vabc)
+        msg += "Vabc = (A @ Vkan) = " + Phasor.polar_matrix_str(Vabc)
     else:
         msg = ''
     return (Vabc, Vkan, msg)
 
 def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     '''
-    Phase-gnd fault
+    Phase-gnd fault.
+    :input:
+        Zkk1,Zkk2,Zkk0: Impedances of sequences 1,2 and 0
+        Zf: Impedance between lines
+        Vf: Pre-fault voltage
+    :returns:
+        vIf: Vector of currents
+        vIfn: Vector of sequence currents
+        Vabc: Vector of voltages (Phase voltages)
+        Vkan: Vector of sequence voltages (Phase voltages)
+
     Vka = 3*Zf*Ifa0
     Ifa0 = Ifa1 = Ifa2= Vf/(Zkk0+Zkk1+Zkk2+3*Zf)
     >>> nepo.fault_phase_gnd(0.2j,0.2j,0.05j,0.08j)
@@ -320,6 +350,16 @@ def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
 def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
     '''
     Phase-Phase fault
+    :input:
+        Zkk1,Zkk2,Zkk0: Impedances of sequences 1,2 and 0
+        Zf: Impedance between lines
+        Vf: Pre-fault voltage
+    :returns:
+        vIf: Vector of currents
+        vIfn: Vector of sequence currents
+        Vabc: Vector of voltages (Phase voltages)
+        Vkan: Vector of sequence voltages (Phase voltages)
+
     Vka1 - Vka2 = Ifa1*Zf
     Ifa = 0
     Ifa1=-Ifa2
@@ -363,6 +403,17 @@ def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
 
 def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     '''
+    Phase to phase ground.
+    :input:
+        Zkk1,Zkk2,Zkk0: Impedances of sequences 1,2 and 0
+        Zf: Impedance between lines
+        Vf: Pre-fault voltage
+    :returns:
+        vIf: Vector of currents
+        vIfn: Vector of sequence currents
+        Vabc: Vector of voltages (Phase voltages)
+        Vkan: Vector of sequence voltages (Phase voltages)
+
     Vka1 = Vka2 = Vka0 - 3*Zf*Ifa0
     Ifa0 + Ifa1 + Ifa2 = 0
     Ifa1 = Vf/(Zkk1 + (Zkk2*(Zkk0+3*Zf)/(Zkk2+Zkk0+3*Zf)))
@@ -376,14 +427,8 @@ def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     vIfn = np.array([Ifa0, Ifa1, Ifa2]).reshape(-1,1)
     vIf = np.array(A @ vIfn).reshape(-1,1)
 
-    # Vka0 = -Zkk0*Ifa0
-    # Vka1 = Vf - Zkk1*Ifa1
-    # Vka2 = -Zkk2*Ifa2
-
-    # Vkan = np.array([Vka0, Vka1, Vka2]).reshape(-1,1)
-    # Vabc = (A @ Vkan)/np.sqrt(3) # Correcao de base
     Vabc, Vkan, msgV = \
-        fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf, steps=True)
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=True)
     ret = vIf, vIfn, Vabc, Vkan
 
     if steps:
