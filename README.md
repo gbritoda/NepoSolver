@@ -4,6 +4,9 @@ I've made this in order to make my life easier studying Electrical Power Systems
 The name is based on my professor, Leonardo Nepomuceno, and I've used this set of tools to study and
 solve his exams.
 
+## Quick how to use
+The file **main.py** has the libraries imported in a convenient way, get familiar with the examples in
+the Jupyter Notebooks (.ipynb) files, and you're all set to write your program in main.py
 ## nepo_tools.py
 This is NepoSolver's main library. All of the tools used are here. You can take a look inside to
 see what each function does. Hopefully I have documented them all.
