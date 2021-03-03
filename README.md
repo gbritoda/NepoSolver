@@ -7,8 +7,10 @@ solve his exams.
 ## nepo_tools.py
 ## To be done:
 * easier way to add arrays (through string perhaps, octave like etc.)
+* Add language change (between Portuguese and English)
 * ~~non symmetrical faults~~ 
 * ~~Conversion of matrix to polar form~~
+* Add how to use to readme
 ## Requirements: 
 * Python 3.5+
 * Numpy

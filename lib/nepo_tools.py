@@ -14,8 +14,8 @@ class Phasor(complex):
     
     def __repr__(self):
         r = round(self.r,4)
-        phi = round(self.phi)
-        return "{} /_{}{}".format(r, phi, u'\xb0')
+        phi = round(self.phi,2)
+        return "{}/_{}{}".format(r, phi, u'\xb0')
     
     def __round__(self, n=2):
         return round(self.r,n), round(self.phi,n)
@@ -28,13 +28,12 @@ class Phasor(complex):
     def rect2polarstr(z):
         z = Phasor.to_polar(z)
         r = round(z[0],4)
-        phi = round(z[1])
-        return "{} /_{}{}".format(r, phi,u'\xb0')
+        phi = round(z[1],2)
+        return "{}/_{}{}".format(r, phi,u'\xb0')
     @staticmethod
     def polar_matrix_str(M):
         '''
         Takes a complex matrix and converts it to polar form (only string)
-        >>> nepo.cmatrix2polar(zbus3)
         '''
         M = np.array(M, dtype='complex_')
         Mnew = ''
@@ -43,6 +42,19 @@ class Phasor(complex):
             Mnew += '\n'
             for j in range(M.shape[1]):
                 Mnew += Phasor.rect2polarstr(M[i][j]) + '  '
+        return Mnew
+    @staticmethod
+    def rect_matrix_str(M):
+        '''
+        Takes a complex matrix and converts it to rectangular form (only string)
+        '''
+        M = np.array(M, dtype='complex_')
+        Mnew = ''
+
+        for i in range(M.shape[0]):
+            Mnew += '\n'
+            for j in range(M.shape[1]):
+                Mnew += str(round(M[i][j].real,4)) + '+'+ str(round(M[i][j].imag,4)) + 'j   '
         return Mnew
 
 ######### Matriz A #########
@@ -87,6 +99,19 @@ def inv(Y):
     Inverse matrix operation
     '''
     return np.linalg.inv(Y)
+
+def get_impedance_matrix_from_Ybus(Ybus):
+    Ybus = np.array(Ybus)
+    Zmat = np.zeros(Ybus.shape)
+    for i in range(Ybus.shape[0]):
+        for j in range(Ybus.shape[1]):
+            Zmat[i][j] = 1./Ybus[i][j]
+    return Zmat
+
+def get_impedance_matrix_from_Zbus(Zbus):
+    Ybus = inv(Zbus)
+    return get_impedance_matrix_from_Ybus(Ybus)
+    
 
 ######### Zbus MODIFICATIONS #########
 
@@ -146,7 +171,7 @@ def Zbus_case3(Zbus, Zb, k, steps=True):
     if steps:
         msg = "Fazendo reducao de Kron em Zbus na barra p=%(p)s\n\n"
         msg += "Zbus final:" + Phasor.polar_matrix_str(Zbus)
-
+        print(msg % locals())
     return Zbus
 
 def Zbus_case4(Zbus, Zb, j, k, steps=True):
@@ -208,9 +233,11 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
     for j in range(len(V)):
         V[j] = Vf - Zbus[j][k]*If
 
+    # Impedance Matrix - Not to be confused with Zbus!
+    Zmat = get_impedance_matrix_from_Ybus(Zbus)
     for j in range(len(V)):
         for i in range(len(V)):
-            I[i][j] = (V[i] - V[j])/Zbus[i][j]
+            I[i][j] = (V[i] - V[j])/Zmat[i][j]
 
     if steps:
         k = k_fault
@@ -222,7 +249,7 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
         msg += "Calculando as tensoes\n"
         msg += "V[j] = Vf - Zbus[j][%(k)s]*If \n\n"
         msg += "Calculando as correntes:\n"
-        msg += "I[i][j] = (V[i] - V[j])/Zbus[i][j]\n\n"
+        msg += "I[i][j] = (V[i] - V[j])/Zb[i][j]\n\n"
         msg += "Tensoes finais:\n"
         msg += str(V.reshape(-1,1)) + "\n\n"
         msg += "Correntes finais: \n%(I)s\n"
@@ -231,6 +258,30 @@ def triphase_fault_zbus(Zbus, k_fault, Vf, steps=True):
     return V, I
 
 ###### FALTAS ASSIMETRICAS ######
+def fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf=1, steps=True):
+    Ifa0 = vIfn[0]
+    Ifa1 = vIfn[1]
+    Ifa2 = vIfn[2]
+
+    Vka0 = -Zkk0*Ifa0
+    Vka1 = Vf - Zkk1*Ifa1
+    Vka2 = -Zkk2*Ifa2
+
+    Vkan = np.array([Vka0, Vka1, Vka2]).reshape(-1,1)
+    Vabc = (A @ Vkan) # Correcao de base
+    # print("Vkan\n",Vkan)
+    # print("A * Vkan\n",A @ Vkan)
+    # print("Vabc\n",Vabc)
+    # input()
+    if steps:
+        msg = "\n\nCalculando tensoes pos falta:\n"
+        msg += "Vka0 = -Zkk0*Ifa0\nVka1 = Vf - Zkk1*Ifa1\nVka2 = -Zkk2*Ifa2\n\n"
+        msg += "Vkan = " + Phasor.polar_matrix_str(Vkan) + '\n\n'
+        msg += "Vabc = (A @ Vkan) / sqrt(3) = " + Phasor.polar_matrix_str(Vabc)
+    else:
+        msg = ''
+    return (Vabc, Vkan, msg)
+
 def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     '''
     Phase-gnd fault
@@ -246,7 +297,9 @@ def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
     # vIf = np.array(A @ vIfn).reshape(-1,1)
     vIf = np.matmul(A, vIfn)
 
-    ret = vIf, vIfn
+    Vabc, Vkan, msgV = \
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0, vIfn, Vf, steps=True)
+    ret = vIf, vIfn, Vabc, Vkan
     if steps:
         Zff = 3*Zf
         Vf = Phasor.rect2polarstr(Vf)
@@ -259,6 +312,7 @@ def fault_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
         msg += "Ifa0 = %(Ifa0)s\n\n"
         msg += "Calculando Ifa:\n Ifa = Ifa0 + Ifa1 + Ifa2 = 3*Ifa0 \n Ifa = %(Ifa)s\n\n"
         msg += "vIfn =\n %(vIfn)s \n\n vIf =\n%(vIf)s \n\n"
+        msg += msgV
         print(msg % locals())
 
     return ret
@@ -281,7 +335,10 @@ def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
     vIfn = np.array([Ifa0, Ifa1, Ifa2]).reshape(-1,1)
     vIf = np.array(A @ vIfn).reshape(-1,1)
     
-    ret = vIf, vIfn
+    Vabc, Vkan, msgV = \
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf, steps=True)
+    ret = vIf, vIfn, Vabc, Vkan
+
     if steps:
         Vf = Phasor.rect2polarstr(Vf)
         Ifa0 = Phasor.rect2polarstr(Ifa0)
@@ -299,6 +356,7 @@ def fault_phase_phase(Zkk1, Zkk2, Zkk0=0, Zf=0, Vf=1, steps=True):
         msg += "Calculando Ifa:\n Ifa = Ifa0 + Ifa1 + Ifa2 \n Ifa = %(Ifa)s\n\n"
         msg += "vIf ="+Phasor.polar_matrix_str(vIf)+"\n\n"
         msg += "vIfn =" + Phasor.polar_matrix_str(vIfn)
+        msg += msgV
         print(msg % locals())
 
     return ret
@@ -317,13 +375,22 @@ def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
 
     vIfn = np.array([Ifa0, Ifa1, Ifa2]).reshape(-1,1)
     vIf = np.array(A @ vIfn).reshape(-1,1)
-    ret = vIf, vIfn
+
+    # Vka0 = -Zkk0*Ifa0
+    # Vka1 = Vf - Zkk1*Ifa1
+    # Vka2 = -Zkk2*Ifa2
+
+    # Vkan = np.array([Vka0, Vka1, Vka2]).reshape(-1,1)
+    # Vabc = (A @ Vkan)/np.sqrt(3) # Correcao de base
+    Vabc, Vkan, msgV = \
+        fault_calculate_voltage(Zkk1, Zkk2, Zkk0,vIfn, Vf, steps=True)
+    ret = vIf, vIfn, Vabc, Vkan
 
     if steps:
         Ifa2 = Phasor.rect2polarstr(Ifa2)
         Ifa1 = Phasor.rect2polarstr(Ifa1)
         Ifa0 = Phasor.rect2polarstr(Ifa0)
-        Zff = Phasor.rect2polarstr(3*Zf)
+        Zff = 3*Zf
         Vf = Phasor.rect2polarstr(Vf)
         msg = "\nFalta Fase-Fase-Terra com Vf=%(Vf)spu, Zkk1=%(Zkk1)s, Zkk2=%(Zkk2)s, Zkk0=%(Zkk0)s e Zf=%(Zf)s\n"
         msg += "\nCalculando Ifa0, Ifa1, Ifa2:\n"
@@ -339,6 +406,8 @@ def fault_phase_phase_gnd(Zkk1, Zkk2, Zkk0, Zf=0, Vf=1, steps=True):
         msg += "Calculando Ifa, Ifb, Ifc:\n"
         msg += "Ifn =" + Phasor.polar_matrix_str(vIfn) +"\n\n[Ifa, Ifb, Ifc]' = A @ Ifn\n"
         msg += "[Ifa, Ifb, Ifc]' ="+ Phasor.polar_matrix_str(vIf)
+        msg += msgV
         print(msg % locals())
 
     return ret
+

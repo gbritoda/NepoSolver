@@ -15,13 +15,12 @@ Ybus = np.array([
 ])
 Ybus = 1j*Ybus
 
-zbus = np.array([
+zbus = 1j*np.array([
     [0.2, 0.2, 0.2, 0.2],
     [0.2, 0.6, 0.2, 0.6],
     [0.2, 0.2, 0.8, 0.2],
     [0.2, 0.6, 0.2, 1.1]
 ])
-zbus = 1j*zbus
 
 #ex 9
 print("EXERCICIO 9")
